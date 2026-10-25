@@ -62,17 +62,41 @@
 - `examples/demo_output.md`：`python -m mcd_carbon demo` 真实运行输出；
 - 本地 `git init` + 提交（commit: feat: 麦碳算）。
 
-## 第六阶段：发布与报名（20:00 后，待用户 PAT）
+## 第六阶段：发布与报名（20:01–20:33，实际过程）
 
-- 计划操作：创建公开仓库 → 推送 → 在 M-China 活动仓库按模板提交报名 Issue；
-- 报名 Issue 正文（预定格式，遵循官方校验要求，标题与正文间不插换行、地址不用 Markdown）：
+1. 用户（GitHub 账号 workhh）生成 fine-grained PAT 交由 WorkBuddy 使用：验证凭据、读取用户名；
+2. 通过 REST API（POST /user/repos）创建公开仓库 `workhh/mcd-carbon-planner`；
+3. `git push` 遇 TLS 阻断（schannel 握手失败、代理 CONNECT 502）。诊断确认：github.com 主站链路被阻断，而 api.github.com 可达 → 改走 **Git Data API**（blobs → tree → commit → ref）单次提交 16 个文件，提交历史干净（Initial commit + feat commit）；
+4. 报名 Issue 经 API 首次提交遇 403：fine-grained token 的仓库访问范围不覆盖第三方组织仓库（GitHub 平台硬限制，非配置问题）；
+5. 用户改用手机端网页登录 GitHub（电脑端 github.com 主站同被阻断），按官方模板手工提交报名 Issue。**#1399 于北京时间 20:32:48 创建成功（Open），处于报名窗口内（截止 23:59）**，等待官方机器人异步校验。
+
+报名 Issue（#1399）正文：
 
 ```
 【参赛申请】
 项目名称：麦碳算 McdCarbon · 家庭低碳点餐规划师
-项目地址：https://github.com/<用户名>/mcd-carbon-planner
-项目简介：基于麦当劳中国MCP的家庭低碳点餐规划Skill：实时菜单+营养数据做约束求解，输出带碳足迹的点餐方案与历史订单碳账单，零第三方依赖，无Token演示模式可跑通全流程。
+项目地址：https://github.com/workhh/mcd-carbon-planner
+项目简介：基于麦当劳中国MCP的家庭低碳点餐规划Skill：调用 query-meals 与
+list-nutrition-foods 获取实时菜单与营养数据，结合本地碳因子库做分层装盘约束求解
+（支持人数/预算/忌口/人均钠上限/减碳权重），输出带碳足迹表格、碳评级与经典牛肉套餐
+基准减碳对比的点餐方案；支持 order-list 历史订单蒸馏为家庭饮食月度碳账单并给出替换建议。
+纯标准库零第三方依赖，未配置Token时自动进入演示模式可完整体验，含7个测试用例，
+仓库含官方要求全部文件（README.md、CONTEST_DECLARATION.md、MCP_INTEGRATION.md、
+源代码、workbuddy.md）。
 ```
+
+## 交付清单核对（官方报名条件）
+
+| 条件 | 状态 |
+|---|---|
+| README.md（介绍/安装/示例/目标用户） | ✓ |
+| CONTEST_DECLARATION.md（官方原文未改） | ✓ |
+| MCP_INTEGRATION.md（Server/Tool/流程/业务价值） | ✓ |
+| 源代码（mcd_carbon/ + tests/，7 用例通过） | ✓ |
+| workbuddy.md（本文件） | ✓ |
+| 公开 Public 仓库 | ✓ workhh/mcd-carbon-planner |
+| 项目创建时间在 2025-12-25 至 2026-10-25 23:59 | ✓ 2026-10-25 |
+| 按标准格式发布报名 Issue | ✓ #1399 |
 
 ## 开发环境
 
