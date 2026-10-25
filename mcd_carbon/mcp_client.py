@@ -73,16 +73,19 @@ class McdMcpClient:
             time.sleep(MIN_REQUEST_INTERVAL - gap)
         self._last_call = time.monotonic()
 
-    def _rpc(self, method: str, params: dict | None = None) -> dict:
+    def _rpc(self, method: str, params: dict | None = None,
+             notify: bool = False) -> dict:
         if self.demo:
             return self._demo_rpc(method, params or {})
         self._throttle()
-        payload = {
+        payload: dict = {
             "jsonrpc": "2.0",
-            "id": self._next_id(),
             "method": method,
             "params": params or {},
         }
+        if not notify:
+            # JSON-RPC 请求带 id；通知（notification）不带
+            payload["id"] = self._next_id()
         req = urllib.request.Request(
             self.endpoint,
             data=json.dumps(payload).encode("utf-8"),
@@ -105,10 +108,16 @@ class McdMcpClient:
             raise McpError(f"MCP HTTP {exc.code}: {exc.read()[:300]!r}") from exc
         except urllib.error.URLError as exc:
             raise McpError(f"MCP 网络错误: {exc.reason}") from exc
+        # 通知的响应可能是 202 空 body
+        if not body.strip():
+            return {}
         return self._parse_rpc_response(body)
 
     @staticmethod
     def _parse_rpc_response(body: str) -> dict:
+        # 空 body（如 202 Accepted 的通知响应）
+        if not body.strip():
+            return {}
         # Streamable HTTP 可能返回 SSE（text/event-stream）或纯 JSON
         if body.lstrip().startswith("{"):
             data = json.loads(body)
@@ -128,9 +137,9 @@ class McdMcpClient:
         self._rpc("initialize", {
             "protocolVersion": "2025-03-26",
             "capabilities": {},
-            "clientInfo": {"name": "mcd-carbon-planner", "version": "1.0.0"},
+            "clientInfo": {"name": "mcd-carbon-planner", "version": "1.0.1"},
         })
-        self._rpc("notifications/initialized", {})
+        self._rpc("notifications/initialized", {}, notify=True)
 
     # -------------------------------------------------------------- 工具层
     def list_tools(self) -> list[McpTool]:
@@ -152,6 +161,9 @@ class McdMcpClient:
                 return {"menu": self._demo_menu, "demo": True}
             return {"demo": True, "message": f"演示模式：{name} 未提供示例数据"}
         result = self._rpc("tools/call", {"name": name, "arguments": arguments})
+        # MCP 2025-03-26+ 支持结构化结果
+        if isinstance(result.get("structuredContent"), dict):
+            return result["structuredContent"]
         content = result.get("content", [])
         for item in content:
             if item.get("type") == "text":
