@@ -90,6 +90,21 @@ def test_carbon_grade():
     assert grade.startswith("A") or grade.startswith("B")
 
 
+def test_empty_notification_response():
+    """MCP 通知（202 空 body）不应被误判为错误."""
+    from mcd_carbon.mcp_client import McdMcpClient
+    assert McdMcpClient._parse_rpc_response("") == {}
+    assert McdMcpClient._parse_rpc_response("   \n") == {}
+
+
+def test_sse_response_parsing():
+    """SSE 格式响应应正确提取 data 行."""
+    from mcd_carbon.mcp_client import McdMcpClient
+    sse = 'event: message\ndata: {"jsonrpc":"2.0","id":1,"result":{"tools":[]}}\n'
+    result = McdMcpClient._parse_rpc_response(sse)
+    assert result == {"tools": []}
+
+
 def _run_all():
     tests = [v for k, v in sorted(globals().items())
              if k.startswith("test_") and callable(v)]
